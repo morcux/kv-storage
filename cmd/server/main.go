@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 
 	"github.com/hashicorp/raft"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 
 	raft_internal "kv-storage/internal/raft"
@@ -32,6 +34,15 @@ func main() {
 	if err := os.MkdirAll(raftDir, 0755); err != nil {
 		log.Fatalf("failed to create dir: %v", err)
 	}
+	metricsPort := *grpcPort + 1000
+	metricsAddr := fmt.Sprintf(":%d", metricsPort)
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		log.Printf("Metrics exposed on %s/metrics", metricsAddr)
+		if err := http.ListenAndServe(metricsAddr, nil); err != nil {
+			log.Printf("Metrics server error: %v", err)
+		}
+	}()
 
 	dbPath := filepath.Join(raftDir, "data.db")
 	db, err := store.NewStore(dbPath)

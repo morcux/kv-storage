@@ -161,20 +161,37 @@ func (s *Store) GetAll() (map[string][]byte, error) {
 func (s *Store) RestoreFromMap(data map[string][]byte) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	path := s.file.Name()
+
 	if err := s.file.Close(); err != nil {
 		return err
 	}
-	s.file.Truncate(0)
-	s.file.Seek(0, 0)
-	for _, v := range data {
-		s.file.Write(v)
+
+	if err := os.Truncate(path, 0); err != nil {
+		return err
 	}
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return err
+	}
+	s.file = file
+
 	s.index = make(map[string]int64)
 	var offset int64 = 0
+
 	for k, v := range data {
+		e := entry.Entry{Key: k, Value: v}
+		encoded := e.Encode()
+
+		if _, err := s.file.Write(encoded); err != nil {
+			return err
+		}
+
 		s.index[k] = offset
-		offset += int64(len(v))
+		offset += int64(len(encoded))
 	}
+
 	return nil
 }
 
