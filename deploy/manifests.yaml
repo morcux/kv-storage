@@ -1,0 +1,69 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kv-service
+  labels:
+    app: kv-storage
+spec:
+  clusterIP: None
+  ports:
+    - port: 50051
+      name: grpc
+      targetPort: 50051
+    - port: 60051
+      name: raft
+      targetPort: 60051
+    - port: 51051
+      name: metrics
+      targetPort: 51051
+  selector:
+    app: kv-storage
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db
+spec:
+  serviceName: "kv-service"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: kv-storage
+  template:
+    metadata:
+      labels:
+        app: kv-storage
+    spec:
+      containers:
+      - name: storage-node
+        image: kv-storage:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 50051
+          name: grpc
+        - containerPort: 60051
+          name: raft
+        - containerPort: 51051
+          name: metrics
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: NODE_ID
+          value: "$(POD_NAME)"
+        
+        volumeMounts:
+        - name: data-volume
+          mountPath: /app/raft-data
+          
+  volumeClaimTemplates:
+  - metadata:
+      name: data-volume
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi

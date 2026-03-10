@@ -10,18 +10,19 @@ import (
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 )
 
-func SetupRaft(nodeID, raftDir, raftAddr string, fsm *FSM) (*raft.Raft, error) {
+func SetupRaft(nodeID, raftDir, bindAddr, advertiseAddr string, fsm *FSM) (*raft.Raft, error) {
 	config := raft.DefaultConfig()
 	config.LocalID = raft.ServerID(nodeID)
 
 	config.SnapshotInterval = 10 * time.Second
 	config.SnapshotThreshold = 2
 
-	addr, err := net.ResolveTCPAddr("tcp", raftAddr)
+	addr, err := net.ResolveTCPAddr("tcp", advertiseAddr)
 	if err != nil {
 		return nil, err
 	}
-	transport, err := raft.NewTCPTransport(raftAddr, addr, 3, 10*time.Second, os.Stderr)
+
+	transport, err := raft.NewTCPTransport(bindAddr, addr, 3, 10*time.Second, os.Stderr)
 	if err != nil {
 		return nil, err
 	}

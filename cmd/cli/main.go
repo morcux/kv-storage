@@ -10,18 +10,21 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	"kv-storage/internal/config"
 	pb "kv-storage/proto"
 )
 
 func main() {
-	serverAddr := flag.String("server", "localhost:50051", "Address of the gRPC server (Leader)")
-	cmd := flag.String("cmd", "get", "Command to execute: get, set, join")
+	cfg := config.LoadCLIConfig()
 
-	key := flag.String("key", "", "Key for set/get")
-	val := flag.String("val", "", "Value for set")
+	serverAddr := flag.String("server", cfg.ServerAddr, "Address of the gRPC server (Leader)")
+	cmd := flag.String("cmd", cfg.Command, "Command to execute: get, set, join")
 
-	nodeID := flag.String("node-id", "", "Node ID to join (e.g., node2)")
-	raftAddr := flag.String("raft-addr", "", "Raft address of the new node (e.g., 127.0.0.1:60052)")
+	key := flag.String("key", cfg.Key, "Key for set/get")
+	val := flag.String("val", cfg.Value, "Value for set")
+
+	nodeID := flag.String("node-id", cfg.NodeID, "Node ID to join (e.g., node2)")
+	raftAddr := flag.String("raft-addr", cfg.RaftAddress, "Raft address of the new node (e.g., 127.0.0.1:60052)")
 
 	flag.Parse()
 
